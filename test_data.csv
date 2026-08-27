@@ -1,0 +1,4 @@
+Nome,Telefone,E-mail,Vencimento,Valor,Status,Pix
+Maria Silva,5585988887777,maria@gemail.com,2026-10-15,120.50,pendente,pix-abc-123
+João Santos,5585977776666,joao@hemail.com,2026-10-16,300.00,pago,pix-def-456
+Cliente Sem Email,5585966665555,,2026-10-17,45.0,pendente,pix-ghi-789

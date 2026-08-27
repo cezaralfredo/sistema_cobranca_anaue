@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}{{ modo }} Cliente{% endblock %}
+{% block page_title %}{{ modo }} Cliente{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <form method="POST" class="client-form" id="clientForm">
+        <div class="form-grid">
+            <!-- Nome -->
+            <div class="form-group full-width">
+                <label for="nome" class="form-label">Nome Completo</label>
+                <input
+                    type="text"
+                    id="nome"
+                    name="nome"
+                    class="form-input"
+                    value="{{ cliente.nome if cliente else '' }}"
+                    placeholder="Ex: João da Silva"
+                    required
+                >
+            </div>
+
+            <!-- Telefone -->
+            <div class="form-group">
+                <label for="telefone" class="form-label">Telefone (WhatsApp)</label>
+                <input
+                    type="tel"
+                    id="telefone"
+                    name="telefone"
+                    class="form-input"
+                    value="{{ cliente.telefone if cliente else '' }}"
+                    placeholder="5585999999999"
+                >
+                <span class="form-hint">Formato internacional, sem +</span>
+            </div>
+
+            <!-- E-mail -->
+            <div class="form-group">
+                <label for="email" class="form-label">E-mail</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    class="form-input"
+                    value="{{ cliente.email if cliente else '' }}"
+                    placeholder="cliente@email.com"
+                >
+            </div>
+
+            <!-- Status -->
+            <div class="form-group">
+                <label for="status" class="form-label">Status da Cobrança</label>
+                <select id="status" name="status" class="form-input form-select">
+                    {% set current_status = cliente.cobranca.status if cliente and cliente.cobranca else 'pendente' %}
+                    <option value="pendente" {% if current_status == 'pendente' %}selected{% endif %}>Pendente</option>
+                    <option value="pago" {% if current_status == 'pago' %}selected{% endif %}>Pago</option>
+                    <option value="cancelado" {% if current_status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                </select>
+            </div>
+
+            <!-- Data de Vencimento -->
+            <div class="form-group">
+                <label for="data_vencimento" class="form-label">Data de Vencimento</label>
+                <input
+                    type="date"
+                    id="data_vencimento"
+                    name="data_vencimento"
+                    class="form-input"
+                    value="{{ cliente.cobranca.data_vencimento if cliente and cliente.cobranca else '' }}"
+                    required
+                >
+            </div>
+
+            <!-- Valor -->
+            <div class="form-group">
+                <label for="valor" class="form-label">Valor (R$)</label>
+                <input
+                    type="number"
+                    id="valor"
+                    name="valor"
+                    class="form-input"
+                    step="0.01"
+                    min="0"
+                    value="{{ cliente.cobranca.valor if cliente and cliente.cobranca and cliente.cobranca.valor else '' }}"
+                    placeholder="0.00"
+                >
+            </div>
+
+            <!-- PIX -->
+            <div class="form-group full-width">
+                <label for="pix" class="form-label">Chave PIX (Copia e Cola)</label>
+                <textarea
+                    id="pix"
+                    name="pix"
+                    class="form-input form-textarea"
+                    rows="3"
+                    placeholder="Cole aqui o código PIX copia e cola"
+                >{{ cliente.cobranca.pix if cliente and cliente.cobranca else '' }}</textarea>
+            </div>
+
+            <!-- Mensagem Customizada -->
+            <div class="form-group full-width">
+                <label for="mensagem_customizada" class="form-label">Mensagem Personalizada (Opcional)</label>
+                <textarea
+                    id="mensagem_customizada"
+                    name="mensagem_customizada"
+                    class="form-input form-textarea"
+                    rows="4"
+                    placeholder="Deixe em branco para usar a mensagem padrão do sistema..."
+                >{{ cliente.mensagem_customizada if cliente else '' }}</textarea>
+                <span class="form-hint">Dica: Use {nome} para incluir o nome do cliente automaticamente. Se deixado em branco, a mensagem padrão será enviada. A imagem do QR Code será anexada automaticamente.</span>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                {{ 'Salvar Alterações' if cliente else 'Cadastrar Cliente' }}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

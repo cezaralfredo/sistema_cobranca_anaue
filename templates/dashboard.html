@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- WhatsApp Status Card -->
+{% if whatsapp_configurado %}
+<div class="whatsapp-status-card {{ 'status-online' if whatsapp_online else 'status-offline' }}" id="whatsappStatusCard">
+    <div class="wpp-status-left">
+        <div class="wpp-status-icon-wrap">
+            <svg class="wpp-logo" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            <span class="wpp-pulse-dot {{ 'pulse-online' if whatsapp_online else 'pulse-offline' }}"></span>
+        </div>
+        <div class="wpp-status-details">
+            <div class="wpp-status-header">
+                <span class="wpp-status-title">WhatsApp</span>
+                <span class="wpp-status-badge {{ 'badge-online' if whatsapp_online else 'badge-offline' }}">
+                    <span class="wpp-dot"></span>
+                    {{ 'Conectado' if whatsapp_online else ('Aguardando QR Code' if whatsapp_info.connected and not whatsapp_info.logged_in else 'Desconectado') }}
+                </span>
+            </div>
+            <div class="wpp-status-meta">
+                {% if whatsapp_online and whatsapp_info.name %}
+                    <span class="wpp-meta-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        {{ whatsapp_info.name }}
+                    </span>
+                {% endif %}
+                <span class="wpp-meta-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+                    {{ whatsapp_info.instance }}
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="wpp-status-actions">
+        <button type="button" class="btn-wpp btn-wpp-test" onclick="testarWhatsApp()" title="Verificar conexão">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+            <span>Verificar</span>
+        </button>
+        <a href="{{ whatsapp_info.manager_url }}" target="_blank" class="btn-wpp btn-wpp-manager" title="Abrir Evolution Manager">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            <span>{{ 'Conectar Instância' if not whatsapp_online else 'Gerenciar' }}</span>
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card stat-total">
+        <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="stat-info">
+            <span class="stat-number">{{ stats.total }}</span>
+            <span class="stat-label">Total Clientes</span>
+        </div>
+    </div>
+</div>
+
+<!-- Clients Table -->
+<div class="table-container">
+    {% if clientes %}
+    <table class="data-table" id="clientsTable">
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="selectAll" onchange="toggleAll(this)"></th>
+                <th>Nome</th>
+                <th>Telefone</th>
+                <th>E-mail</th>
+                <th>Vencimento</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th>Notif.</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cliente in clientes %}
+            <tr class="table-row">
+                <td><input type="checkbox" name="cliente_ids" value="{{ cliente._id }}" class="client-checkbox"></td>
+                <td class="cell-name">{{ cliente.nome }}</td>
+                <td>{{ cliente.telefone or '—' }}</td>
+                <td>{{ cliente.email or '—' }}</td>
+                <td>
+                    {% if cliente.cobranca and cliente.cobranca.data_vencimento %}
+                        {{ cliente.cobranca.data_vencimento | data_br }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if cliente.cobranca and cliente.cobranca.valor %}
+                        R$ {{ "%.2f"|format(cliente.cobranca.valor) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% set status = cliente.cobranca.status if cliente.cobranca else 'pendente' %}
+                    <span class="badge badge-{{ status }}">{{ status | capitalize }}</span>
+                </td>
+                <td>
+                    <span class="notif-count">{{ (cliente.notificacoes_enviadas | default([])) | length }}</span>
+                </td>
+                <td class="cell-actions">
+                    <a href="{{ url_for('editar_cliente', id=cliente._id) }}" class="btn-action btn-edit" title="Editar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </a>
+                    <form method="POST" action="{{ url_for('confirmar_pagamento', id=cliente._id) }}" class="inline-form">
+                        <button type="submit" class="btn-action btn-confirm" title="Confirmar Pagamento e Renovar Ciclo">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('deletar_cliente', id=cliente._id) }}" class="inline-form">
+                        <button type="submit" class="btn-action btn-delete" 
+                                onclick="return confirm('Tem certeza que deseja excluir {{ cliente.nome|e }}?')"
+                                title="Excluir">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
+        <h3>Nenhum cliente encontrado</h3>
+        <p>{% if busca or filtro_status %}Tente ajustar os filtros de busca.{% else %}Cadastre o primeiro cliente para começar.{% endif %}</p>
+        <a href="{{ url_for('novo_cliente') }}" class="btn btn-primary">+ Novo Cliente</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Manual Billing Bar -->
+<div class="manual-billing-bar" id="manualBillingBar" style="display: none;">
+    <div class="bulk-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span><strong id="selectedCount">0</strong> cliente(s) selecionado(s)</span>
+    </div>
+    <div class="send-options">
+        <label class="radio-label">
+            <input type="radio" name="metodo_envio" value="ambos" checked>
+            <span>Ambos</span>
+        </label>
+        <label class="radio-label">
+            <input type="radio" name="metodo_envio" value="whatsapp">
+            <span>WhatsApp</span>
+        </label>
+        <label class="radio-label">
+            <input type="radio" name="metodo_envio" value="email">
+            <span>Email</span>
+        </label>
+    </div>
+    <button type="button" class="btn btn-primary" onclick="submitManualBilling()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Enviar Cobrança Manual
+    </button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleAll(source) {
+    const checkboxes = document.querySelectorAll('.client-checkbox');
+    checkboxes.forEach(function(item) {
+        item.checked = source.checked;
+    });
+    updateManualBillingBar();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.client-checkbox');
+    checkboxes.forEach(function(item) {
+        item.addEventListener('change', updateManualBillingBar);
+    });
+});
+
+function updateManualBillingBar() {
+    const checkboxes = document.querySelectorAll('.client-checkbox:checked');
+    const bar = document.getElementById('manualBillingBar');
+    const count = document.getElementById('selectedCount');
+    count.textContent = checkboxes.length;
+    if (checkboxes.length > 0) {
+        bar.style.display = 'flex';
+    } else {
+        bar.style.display = 'none';
+    }
+}
+
+function submitManualBilling() {
+    const checkboxes = document.querySelectorAll('.client-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert('Nenhum cliente selecionado.');
+        return;
+    }
+    if (!confirm('Deseja enviar cobrança para os ' + checkboxes.length + ' cliente(s) selecionado(s)?')) {
+        return;
+    }
+    const metodo = document.querySelector('input[name="metodo_envio"]:checked').value;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ url_for("enviar_cobranca_manual") }}';
+    const metodoInput = document.createElement('input');
+    metodoInput.type = 'hidden';
+    metodoInput.name = 'metodo_envio';
+    metodoInput.value = metodo;
+    form.appendChild(metodoInput);
+    checkboxes.forEach(function(item) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'cliente_ids';
+        input.value = item.value;
+        form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function testarWhatsApp() {
+    const btn = document.querySelector('.btn-wpp-test');
+    const card = document.getElementById('whatsappStatusCard');
+    const originalHTML = btn.innerHTML;
+    
+    // Loading state
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>Verificando...</span>';
+    
+    fetch('{{ url_for("teste_whatsapp") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                // Animação de sucesso
+                card.classList.remove('status-offline');
+                card.classList.add('status-online');
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg><span>Conectado!</span>';
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                // Mostrar motivo
+                const msg = data.error || 'Não foi possível conectar';
+                alert('WhatsApp Offline: ' + msg + '\n\nAbra o Evolution Manager para escanear o QR Code.');
+            }
+        })
+        .catch(error => {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+            alert('Erro ao verificar: ' + error);
+        });
+}
+</script>
+{% endblock %}

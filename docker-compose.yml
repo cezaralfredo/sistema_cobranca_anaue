@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: anaue-cobranca-app
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - ./static:/app/static
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - anaue-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  automation:
+    build: .
+    container_name: anaue-cobranca-automation
+    command: python main.py
+    env_file:
+      - .env
+    volumes:
+      - ./static:/app/static
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - anaue-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  cron:
+    image: crazymax/swiss-army-knife:latest
+    container_name: anaue-cobranca-cron
+    env_file:
+      - .env
+    volumes:
+      - ./static:/app/static
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # Executa às 09:00 todos os dias (formato cron: min hour day month weekday)
+      - CRON_SCHEDULE=0 9 * * *
+      # Comando a executar (usa docker exec no container automation)
+      - CRON_COMMAND=docker exec anaue-cobranca-automation python main.py
+      - TZ=America/Sao_Paulo
+    depends_on:
+      automation:
+        condition: service_started
+      mongodb:
+        condition: service_healthy
+    networks:
+      - anaue-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "sh", "-c", "test -f /var/run/docker.sock && echo ok"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mongodb:
+    image: mongo:7
+    container_name: anaue-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: sistema_assinaturas
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+    networks:
+      - anaue-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  mongodb_data:
+
+networks:
+  anaue-network:
+    driver: bridge

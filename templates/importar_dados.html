@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Importar Dados{% endblock %}
+{% block page_title %}Importar Dados (Planilha/CSV){% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="import-instructions">
+        <h3>Instruções para Importação</h3>
+        <p>Para que os dados sejam importados corretamente, certifique-se de que sua planilha (Excel) ou arquivo CSV contenha as seguintes colunas (a primeira linha deve ser o cabeçalho):</p>
+        <ul>
+            <li><strong>Nome:</strong> Nome completo do cliente (Obrigatório)</li>
+            <li><strong>Telefone:</strong> Apenas os números, com DDD (ex: 5585999999999)</li>
+            <li><strong>E-mail:</strong> Endereço de e-mail do cliente</li>
+            <li><strong>Vencimento:</strong> Data no formato DD/MM/AAAA (ex: 01/04/2026) ou YYYY-MM-DD</li>
+            <li><strong>Valor:</strong> Valor da cobrança (ex: 150.00)</li>
+            <li><strong>Status:</strong> Use 'pendente', 'pago' ou 'cancelado' (Padrão: pendente)</li>
+            <li><strong>Pix:</strong> Código Pix copia e cola da cobrança</li>
+        </ul>
+        <p><em>Nota: As colunas não precisam estar em uma ordem exata, mas os nomes no cabeçalho ajudam no mapeamento correto.</em></p>
+    </div>
+
+    <form method="POST" action="{{ url_for('importar_dados') }}" class="client-form" id="importForm" enctype="multipart/form-data">
+        <div class="form-grid">
+            <!-- Tipo de Arquivo -->
+            <div class="form-group full-width">
+                <label class="form-label">Tipo de Arquivo Origem</label>
+                <div class="radio-group" style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="tipo_arquivo" value="planilha" checked> Planilha (Excel .xlsx / .xls)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="tipo_arquivo" value="csv"> Arquivo de Texto (.csv)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Arquivo -->
+            <div class="form-group full-width">
+                <label for="arquivo" class="form-label">Selecione o Arquivo</label>
+                <input
+                    type="file"
+                    id="arquivo"
+                    name="arquivo"
+                    class="form-input"
+                    accept=".csv, .xlsx, .xls"
+                    required
+                    style="padding: 10px;"
+                >
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions" style="margin-top: 2rem;">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary" id="btnImportar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Iniciar Importação
+            </button>
+        </div>
+    </form>
+</div>
+
+{% block scripts %}
+<script>
+    document.getElementById('importForm').addEventListener('submit', function() {
+        const btn = document.getElementById('btnImportar');
+        btn.innerHTML = 'Importando... <span style="display:inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-bottom-color: transparent; border-radius: 50%; animation: rotation 1s linear infinite; margin-left: 5px;"></span>';
+        btn.disabled = true;
+        btn.style.opacity = '0.8';
+        btn.style.cursor = 'not-allowed';
+    });
+</script>
+<style>
+    @keyframes rotation {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .import-instructions {
+        background-color: var(--surface-light);
+        padding: 1.5rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 2rem;
+        border-left: 4px solid var(--primary-color);
+    }
+    .import-instructions h3 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+    .import-instructions ul {
+        margin-left: 1.5rem;
+        margin-bottom: 1rem;
+        line-height: 1.6;
+    }
+    .import-instructions strong {
+        color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+{% endblock %}

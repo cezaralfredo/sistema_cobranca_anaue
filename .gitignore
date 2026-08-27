@@ -1,0 +1,51 @@
+# Ambiente virtual
+venv/
+.venv/
+env/
+
+# Variáveis de ambiente (contém segredos)
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Windows
+nul
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Docker
+.dockerignore
+
+# Testes e scripts temporários
+test_*.py
+debug_*.py
+check_*.py
+reset_*.py
+create_*.py
+run_*.bat
+start_*.bat
+
+# Documentação antiga
+INSTRUCTIONS.md
+FUNCIONALIDADES.md
+
+# Arquivos de imagem/QR code
+*.png
+*.jpg
+*.jpeg
