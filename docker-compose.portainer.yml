@@ -1,0 +1,162 @@
+# =============================================================================
+# Sistema de Cobrança Anaue - docker-compose (adaptado p/ Portainer + Evolution API)
+# =============================================================================
+# Stack: sistema_cobranca
+# Ambientes externos partilhados (redes existentes no host):
+#   - app_network .......... rede da Evolution API (evolution-api:8080) e Evo CRM
+#   - nginx-proxy_default .. rede do Nginx Proxy Manager (p/ expor dashboard via dominio)
+# =============================================================================
+# CREDENCIAIS (definir na aba "Environment variables" da Stack no Portainer):
+#   WHATSAPP_API_KEY  -> token da instancia OU a AUTHENTICATION_API_KEY global da Evolution
+#   EMAIL_USER        -> e-mail SMTP (ex: conta@gmail.com)
+#   EMAIL_PASS        -> senha de app do e-mail
+#   (WHATSAPP_INSTANCE e WHATSAPP_API_URL vêm com defaults prontos)
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # Banco de dados
+  # ===========================================================================
+  mongodb:
+    image: mongo:7
+    container_name: anaue-cobranca-mongodb
+    environment:
+      MONGO_INITDB_DATABASE: sistema_assinaturas
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+    networks:
+      - cobranca_network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ===========================================================================
+  # Dashboard Web (Flask)
+  # ===========================================================================
+  app:
+    build: .
+    container_name: anaue-cobranca-app
+    ports:
+      - "5000:5000"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/
+      MONGODB_DB_NAME: sistema_assinaturas
+      # --- Evolution API (v2) ---
+      WHATSAPP_API_URL: ${WHATSAPP_API_URL:-http://evolution-api:8080}
+      WHATSAPP_INSTANCE: ${WHATSAPP_INSTANCE:-anaue}
+      WHATSAPP_API_KEY: ${WHATSAPP_API_KEY:?Defina WHATSAPP_API_KEY na Stack}
+      WHATSAPP_DELAY_MIN: ${WHATSAPP_DELAY_MIN:-10}
+      WHATSAPP_DELAY_MAX: ${WHATSAPP_DELAY_MAX:-30}
+      WHATSAPP_TIMEOUT: ${WHATSAPP_TIMEOUT:-30}
+      WHATSAPP_RETRIES: ${WHATSAPP_RETRIES:-3}
+      # --- SMTP (E-mail) ---
+      SMTP_SERVER: ${SMTP_SERVER:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      EMAIL_USER: ${EMAIL_USER:?Defina EMAIL_USER na Stack}
+      EMAIL_PASS: ${EMAIL_PASS:?Defina EMAIL_PASS na Stack}
+    volumes:
+      - static_data:/app/static
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cobranca_network
+      - app_network
+      - npm
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ===========================================================================
+  # Worker de cobranca (roda sob demanda via cron; estado normal Exited/Created)
+  # ===========================================================================
+  automation:
+    build: .
+    container_name: anaue-cobranca-automation
+    command: python main.py
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/
+      MONGODB_DB_NAME: sistema_assinaturas
+      WHATSAPP_API_URL: ${WHATSAPP_API_URL:-http://evolution-api:8080}
+      WHATSAPP_INSTANCE: ${WHATSAPP_INSTANCE:-anaue}
+      WHATSAPP_API_KEY: ${WHATSAPP_API_KEY:?Defina WHATSAPP_API_KEY na Stack}
+      WHATSAPP_DELAY_MIN: ${WHATSAPP_DELAY_MIN:-10}
+      WHATSAPP_DELAY_MAX: ${WHATSAPP_DELAY_MAX:-30}
+      WHATSAPP_TIMEOUT: ${WHATSAPP_TIMEOUT:-30}
+      WHATSAPP_RETRIES: ${WHATSAPP_RETRIES:-3}
+      SMTP_SERVER: ${SMTP_SERVER:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      EMAIL_USER: ${EMAIL_USER:?Defina EMAIL_USER na Stack}
+      EMAIL_PASS: ${EMAIL_PASS:?Defina EMAIL_PASS na Stack}
+    volumes:
+      - static_data:/app/static
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cobranca_network
+      - app_network
+      - npm
+
+  # ===========================================================================
+  # Agendador diario (09:00) - executa o worker via docker exec
+  # REQUER no Portainer: Settings > Security > "Allow bind mounts" habilitado
+  # ===========================================================================
+  cron:
+    image: crazymax/swiss-army-knife:latest
+    container_name: anaue-cobranca-cron
+    volumes:
+      - static_data:/app/static
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      CRON_SCHEDULE: ${CRON_SCHEDULE:-0 9 * * *}
+      CRON_COMMAND: docker exec anaue-cobranca-automation python main.py
+      TZ: America/Sao_Paulo
+    depends_on:
+      automation:
+        condition: service_started
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cobranca_network
+      - app_network
+      - npm
+    healthcheck:
+      test: ["CMD", "sh", "-c", "test -f /var/run/docker.sock && echo ok"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+# =============================================================================
+# Volumes (nomeados - nao depende de caminho no host)
+# =============================================================================
+volumes:
+  mongodb_data:
+  static_data:
+    name: anaue-cobranca-static
+
+# =============================================================================
+# Redes
+# =============================================================================
+networks:
+  cobranca_network:
+    driver: bridge
+  # Redes externas existentes no host (evolution-api + NPM)
+  app_network:
+    external: true
+  npm:
+    external: true
+    name: ${NPM_NETWORK:-nginx-proxy_default}
