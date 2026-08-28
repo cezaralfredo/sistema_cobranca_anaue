@@ -8,8 +8,11 @@ case "$1" in
   automation)
     exec python main.py
     ;;
+  scheduler)
+    exec python scheduler.py
+    ;;
   *)
-    echo "Usage: $0 {dashboard|automation}"
+    echo "Usage: $0 {dashboard|automation|scheduler}"
     exit 1
     ;;
 esac
