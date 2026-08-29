@@ -22,8 +22,9 @@ version: '3.8'
 services:
   # ===========================================================================
   # PostgreSQL - DEDICADO e ISOLADO
+  # servico chamado cobranca_pg (nome unico) p/ nao colidir com o postgres evo_crm
   # ===========================================================================
-  postgres:
+  cobranca_pg:
     image: postgres:16-alpine
     container_name: anaue-cobranca-postgres
     environment:
@@ -53,7 +54,7 @@ services:
       - "5000:5000"
     environment: &app_env
       # Banco (dedicado da stack)
-      DATABASE_URL: ${DATABASE_URL:-postgresql://anaue:${POSTGRES_PASSWORD}@postgres:5432/sistema_cobranca}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://anaue:${POSTGRES_PASSWORD}@cobranca_pg:5432/sistema_cobranca}
       # --- Evolution API (v2) ---
       WHATSAPP_API_URL: ${WHATSAPP_API_URL:-http://evolution-api:8080}
       WHATSAPP_INSTANCE: ${WHATSAPP_INSTANCE:-anaue}
@@ -70,7 +71,7 @@ services:
     volumes:
       - static_data:/app/static
     depends_on:
-      postgres:
+      cobranca_pg:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -99,7 +100,7 @@ services:
     volumes:
       - static_data:/app/static
     depends_on:
-      postgres:
+      cobranca_pg:
         condition: service_healthy
     restart: unless-stopped
     networks:
