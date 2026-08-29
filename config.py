@@ -9,9 +9,11 @@ from dotenv import load_dotenv
 # Carrega variáveis do arquivo .env (se existir)
 load_dotenv()
 
-# ===== MongoDB =====
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/").strip()
-MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "sistema_assinaturas").strip()
+# ===== Banco de dados (PostgreSQL dedicado da stack) =====
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://anaue:cobranca@postgres:5432/sistema_cobranca",
+).strip()
 
 # ===== Evolution API (WhatsApp) =====
 WHATSAPP_API_URL = os.getenv("WHATSAPP_API_URL", "").strip()

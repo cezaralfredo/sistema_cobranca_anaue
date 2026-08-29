@@ -7,13 +7,11 @@ clientes e assinaturas armazenados no MongoDB.
 
 from datetime import datetime
 
-from bson import ObjectId
 from flask import Flask, flash, redirect, render_template, request, url_for, jsonify
-from pymongo import MongoClient
-from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
 import pandas as pd
 
 import config
+from skills.skill_database import get_colecao as _get_colecao, ObjectId, DatabaseUnavailable
 from skills import gerar_mensagem, WhatsAppSender, EmailSender
 import os
 
@@ -22,24 +20,9 @@ app = Flask(__name__)
 app.secret_key = "anaue-dashboard-secret-key-2026"
 
 
-# ── MongoDB ──────────────────────────────────────────────────────────
-def _get_client():
-    """Cria um MongoClient com timeout curto."""
-    return MongoClient(
-        config.MONGODB_URI,
-        serverSelectionTimeoutMS=10000,
-        connectTimeoutMS=10000,
-        socketTimeoutMS=15000,
-    )
-
-
-def _get_colecao():
-    """Retorna a collection do MongoDB. Pode lançar exceção."""
-    client = _get_client()
-    # Força teste de conexão imediato
-    client.admin.command("ping")
-    db = client[config.MONGODB_DB_NAME]
-    return db["assinaturas"]
+# ── Banco de dados (PostgreSQL) ──────────────────────────────────────
+# A aplicação usa _get_colecao() (CompatCollection sobre clientes_anaue),
+# importado de skills.skill_database com a MESMA interface do MongoDB.
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -100,11 +83,10 @@ def data_br_filter(date_str):
 
 # ── Error Handlers ───────────────────────────────────────────────────
 
-@app.errorhandler(ServerSelectionTimeoutError)
-@app.errorhandler(ConnectionFailure)
-def handle_mongo_error(error):
-    """Mostra página amigável quando o MongoDB está indisponível."""
-    return render_template("erro_conexao.html", uri=config.MONGODB_URI), 503
+@app.errorhandler(DatabaseUnavailable)
+def handle_db_error(error):
+    """Mostra página amigável quando o banco de dados está indisponível."""
+    return render_template("erro_conexao.html", uri=config.DATABASE_URL), 503
 
 
 # ── Rotas ────────────────────────────────────────────────────────────
@@ -116,7 +98,7 @@ def dashboard():
     try:
         colecao = _get_colecao()
     except Exception:
-        return render_template("erro_conexao.html", uri=config.MONGODB_URI), 503
+        return render_template("erro_conexao.html", uri=config.DATABASE_URL), 503
 
     filtro_status = request.args.get("status", "")
     busca = request.args.get("busca", "").strip()
@@ -127,7 +109,11 @@ def dashboard():
     if busca:
         query["nome"] = {"$regex": busca, "$options": "i"}
 
-    clientes = list(colecao.find(query).sort("cobranca.data_vencimento", 1))
+    clientes = colecao.find(query)
+    clientes = sorted(
+        clientes,
+        key=lambda c: (c.get("cobranca", {}) or {}).get("data_vencimento") or "",
+    )
 
     # Estatísticas
     total = colecao.count_documents({})
@@ -198,7 +184,7 @@ def novo_cliente():
     try:
         colecao = _get_colecao()
     except Exception:
-        return render_template("erro_conexao.html", uri=config.MONGODB_URI), 503
+        return render_template("erro_conexao.html", uri=config.DATABASE_URL), 503
 
     if request.method == "POST":
         dados = _parse_form(request.form)
@@ -215,7 +201,7 @@ def editar_cliente(id):
     try:
         colecao = _get_colecao()
     except Exception:
-        return render_template("erro_conexao.html", uri=config.MONGODB_URI), 503
+        return render_template("erro_conexao.html", uri=config.DATABASE_URL), 503
 
     cliente = colecao.find_one({"_id": ObjectId(id)})
     if not cliente:
@@ -248,7 +234,7 @@ def deletar_cliente(id):
     try:
         colecao = _get_colecao()
     except Exception:
-        return render_template("erro_conexao.html", uri=config.MONGODB_URI), 503
+        return render_template("erro_conexao.html", uri=config.DATABASE_URL), 503
 
     resultado = colecao.delete_one({"_id": ObjectId(id)})
     if resultado.deleted_count:
@@ -269,7 +255,7 @@ def confirmar_pagamento(id):
     try:
         colecao = _get_colecao()
     except Exception:
-        return render_template("erro_conexao.html", uri=config.MONGODB_URI), 503
+        return render_template("erro_conexao.html", uri=config.DATABASE_URL), 503
 
     cliente = colecao.find_one({"_id": ObjectId(id)})
     if not cliente:
@@ -365,7 +351,7 @@ def importar_dados():
     try:
         colecao = _get_colecao()
     except Exception:
-        return render_template("erro_conexao.html", uri=config.MONGODB_URI), 503
+        return render_template("erro_conexao.html", uri=config.DATABASE_URL), 503
 
     if request.method == "POST":
         if "arquivo" not in request.files:
@@ -520,7 +506,7 @@ def enviar_cobranca_manual():
     try:
         colecao = _get_colecao()
     except Exception:
-        return render_template("erro_conexao.html", uri=config.MONGODB_URI), 503
+        return render_template("erro_conexao.html", uri=config.DATABASE_URL), 503
 
     ids_selecionados = request.form.getlist("cliente_ids")
     metodo = request.form.get("metodo_envio", "ambos")

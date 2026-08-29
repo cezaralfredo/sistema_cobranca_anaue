@@ -1,42 +1,47 @@
 # =============================================================================
-# Sistema de Cobranca Anaue - docker-compose (adaptado p/ Portainer + Evolution API)
+# Sistema de Cobranca Anaue - docker-compose (Portainer + Evolution API + PostgreSQL dedicado)
 # =============================================================================
 # Stack: sistema_cobranca
-# Ambientes externos partilhados (redes existentes no host):
+# Banco: PostgreSQL DEDICADO e isolado nesta stack (servico `postgres`, volume
+#        proprio, credenciais proprias) - nao compartilha nada com outros sistemas.
+#
+# Redes externas partilhadas:
 #   - app_network .......... rede da Evolution API (evolution-api:8080) e Evo CRM
 #   - nginx-proxy_default .. rede do Nginx Proxy Manager (p/ expor dashboard via dominio)
 #
-# Servicos: mongodb | app (dashboard) | scheduler (regua diaria)
-#   -> o agendador roda internamente (python), SEM imagem de cron externa e
-#      SEM acesso ao docker socket (nenhuma permissao extra no Portainer).
+# Servicos: postgres | app (dashboard) | scheduler (regua diaria)
 # =============================================================================
 # CREDENCIAIS (definir na aba "Environment variables" da Stack no Portainer):
-#   WHATSAPP_API_KEY  -> token da instancia OU a AUTHENTICATION_API_KEY global da Evolution
-#   EMAIL_USER        -> e-mail SMTP (ex: conta@gmail.com)
-#   EMAIL_PASS        -> senha de app do e-mail
+#   POSTGRES_PASSWORD  -> senha do banco dedicado (gerar ao criar a stack)
+#   WHATSAPP_API_KEY   -> token da instancia OU AUTHENTICATION_API_KEY da Evolution
+#   EMAIL_USER/EMAIL_PASS -> SMTP
 # =============================================================================
 
 version: '3.8'
 
 services:
   # ===========================================================================
-  # Banco de dados
+  # PostgreSQL - DEDICADO e ISOLADO
   # ===========================================================================
-  mongodb:
-    image: mongo:7
-    container_name: anaue-cobranca-mongodb
+  postgres:
+    image: postgres:16-alpine
+    container_name: anaue-cobranca-postgres
     environment:
-      MONGO_INITDB_DATABASE: sistema_assinaturas
+      POSTGRES_USER: anaue
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD na Stack}
+      POSTGRES_DB: sistema_cobranca
     volumes:
-      - mongodb_data:/data/db
+      - pgdata:/var/lib/postgresql/data
+      # Seed (schema + clientes) aplicado apenas na PRIMEIRA inicializacao
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     restart: unless-stopped
     networks:
       - cobranca_network
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U anaue -d sistema_cobranca"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 10s
 
   # ===========================================================================
@@ -49,9 +54,8 @@ services:
     ports:
       - "5000:5000"
     environment: &app_env
-      # MongoDB
-      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/}
-      MONGODB_DB_NAME: ${MONGODB_DB_NAME:-sistema_assinaturas}
+      # Banco (dedicado da stack)
+      DATABASE_URL: ${DATABASE_URL:-postgresql://anaue:${POSTGRES_PASSWORD}@postgres:5432/sistema_cobranca}
       # --- Evolution API (v2) ---
       WHATSAPP_API_URL: ${WHATSAPP_API_URL:-http://evolution-api:8080}
       WHATSAPP_INSTANCE: ${WHATSAPP_INSTANCE:-anaue}
@@ -68,7 +72,7 @@ services:
     volumes:
       - static_data:/app/static
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -83,7 +87,7 @@ services:
       start_period: 15s
 
   # ===========================================================================
-  # Agendador diario (regua de cobranca) - executa internamente via python
+  # Agendador diario (regua de cobranca) - python interno, sem docker socket
   # ===========================================================================
   scheduler:
     build: .
@@ -97,7 +101,7 @@ services:
     volumes:
       - static_data:/app/static
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -108,7 +112,7 @@ services:
 # Volumes (nomeados - nao depende de caminho no host)
 # =============================================================================
 volumes:
-  mongodb_data:
+  pgdata:
   static_data:
     name: anaue-cobranca-static
 

@@ -31,7 +31,7 @@ def executar_regua(enviar_whatsapp=True, enviar_email=True):
     """
 
     # 1. Inicializar serviços
-    db = DatabaseManager(uri=config.MONGODB_URI, db_name=config.MONGODB_DB_NAME)
+    db = DatabaseManager()
     
     whatsapp = None
     if enviar_whatsapp:
