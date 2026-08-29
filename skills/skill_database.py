@@ -34,6 +34,36 @@ class ObjectId(str):
     pass
 
 
+# ── Inicialização do schema (idempotente, roda 1x por processo) ─────
+_schema_ready = False
+_INIT_SQL_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "db", "init.sql",
+)
+
+
+def _ensure_schema():
+    """Cria a tabela + seed no PostgreSQL se ainda não existirem."""
+    global _schema_ready
+    if _schema_ready:
+        return
+    conn = _connect()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT to_regclass('public.clientes_anaue')")
+        if cur.fetchone()[0] is None:
+            raw = ""
+            if os.path.exists(_INIT_SQL_PATH):
+                with open(_INIT_SQL_PATH, "r", encoding="utf-8") as f:
+                    raw = f.read()
+            if raw.strip():
+                cur.execute(raw)  # psycopg2 aceita varias sentencas separadas por ';'
+        conn.commit()
+        _schema_ready = True
+    finally:
+        conn.close()
+
+
 # ── Conflitos/Mapeamento ──────────────────────────────────────────────
 # Tabela de mapeamento: campo aninhado (mongo) -> coluna postgres
 FIELD_TO_COL = {
@@ -121,6 +151,7 @@ class CompatCollection:
 
     def __init__(self):
         self.database = _CompatDatabase()
+        _ensure_schema()
 
     def _query_where(self, query: dict) -> tuple:
         """Constrói WHERE + params a partir do dict de query (subset usado)."""
