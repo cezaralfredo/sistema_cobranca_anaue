@@ -3,7 +3,14 @@ set -e
 
 case "$1" in
   dashboard)
-    exec python dashboard.py
+    # Servidor de producao (Gunicorn): varios workers+threads evitam 504 por bloqueio
+    exec gunicorn \
+      --workers 2 \
+      --threads 4 \
+      --timeout 300 \
+      --bind 0.0.0.0:5000 \
+      --access-logfile - \
+      dashboard:app
     ;;
   automation)
     exec python main.py

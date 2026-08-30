@@ -16,7 +16,10 @@ DATABASE_URL = os.getenv(
 ).strip()
 
 # ===== Evolution API (WhatsApp) =====
+# WHATSAPP_API_URL: usado p/ envio servidor->servidor (interno p/ evitar hairpin)
 WHATSAPP_API_URL = os.getenv("WHATSAPP_API_URL", "").strip()
+# WHATSAPP_MANAGER_URL: URL publica do manager (link do navegador no dashboard)
+WHATSAPP_MANAGER_URL = os.getenv("WHATSAPP_MANAGER_URL", WHATSAPP_API_URL).strip()
 WHATSAPP_INSTANCE = os.getenv("WHATSAPP_INSTANCE", "anaue").strip()
 WHATSAPP_API_KEY = os.getenv("WHATSAPP_API_KEY", "").strip()
 WHATSAPP_DELAY_MIN = int(os.getenv("WHATSAPP_DELAY_MIN", "10"))

@@ -146,7 +146,7 @@ def dashboard():
     whatsapp_info = {
         "instance": config.WHATSAPP_INSTANCE,
         "api_url": config.WHATSAPP_API_URL,
-        "manager_url": f"{config.WHATSAPP_API_URL}/manager/instances" if config.WHATSAPP_API_URL else "",
+        "manager_url": f"{config.WHATSAPP_MANAGER_URL}/manager/instances" if config.WHATSAPP_MANAGER_URL else "",
         "connected": False,
         "logged_in": False,
         "name": "",
