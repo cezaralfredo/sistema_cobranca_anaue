@@ -156,13 +156,18 @@ def dashboard():
         try:
             import requests as req
             headers = {"apikey": config.WHATSAPP_API_KEY}
-            r = req.get(f"{config.WHATSAPP_API_URL}/instance/status", headers=headers, timeout=5)
+            # Evolution API v2: connectionState/{instance} -> {"instance":{"state":"open"|"close"}}
+            r = req.get(
+                f"{config.WHATSAPP_API_URL}/instance/connectionState/{config.WHATSAPP_INSTANCE}",
+                headers=headers, timeout=5,
+            )
             if r.status_code == 200:
-                data = r.json().get("data", {})
-                whatsapp_info["connected"] = data.get("Connected", False)
-                whatsapp_info["logged_in"] = data.get("LoggedIn", False)
-                whatsapp_info["name"] = data.get("Name", "")
-                whatsapp_online = whatsapp_info["connected"] and whatsapp_info["logged_in"]
+                instance_data = r.json().get("instance", {})
+                st = instance_data.get("state", "close")
+                whatsapp_info["connected"] = st == "open"
+                whatsapp_info["logged_in"] = st == "open"
+                whatsapp_info["name"] = instance_data.get("instanceName") or config.WHATSAPP_INSTANCE
+                whatsapp_online = st == "open"
         except Exception:
             whatsapp_online = False
 
