@@ -57,6 +57,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://anaue:${POSTGRES_PASSWORD}@cobranca_pg:5432/sistema_cobranca}
       # --- Evolution API (v2) ---
       WHATSAPP_API_URL: ${WHATSAPP_API_URL:-http://evolution-api:8080}
+      WHATSAPP_MANAGER_URL: ${WHATSAPP_MANAGER_URL:-${WHATSAPP_API_URL}}
       WHATSAPP_INSTANCE: ${WHATSAPP_INSTANCE:-anaue}
       WHATSAPP_API_KEY: ${WHATSAPP_API_KEY:?Defina WHATSAPP_API_KEY na Stack}
       WHATSAPP_DELAY_MIN: ${WHATSAPP_DELAY_MIN:-10}
