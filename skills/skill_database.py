@@ -233,7 +233,13 @@ class CompatCollection:
         for key, val in ups.items():
             if key == "$set":
                 for f, v in val.items():
-                    setters[_col(f)] = _to_col_value(f, v)
+                    # Achata dicts aninhados (ex.: cobranca.{status, ...}) nas colunas
+                    if isinstance(v, dict):
+                        for k2, v2 in v.items():
+                            path = f"{f}.{k2}"
+                            setters[_col(path)] = _to_col_value(path, v2)
+                    else:
+                        setters[_col(f)] = _to_col_value(f, v)
             elif key == "$push":
                 for f, v in val.items():
                     push.append((_col(f), v))
